@@ -32,6 +32,25 @@ cd myproj-team
 
 By hand, the same thing is: `gh repo create`, `git clone … po`, `git submodule add … .claude/skills/agent-team`, then `/agent-team init` inside `po/`.
 
+## On a host that runs 24/7
+
+The roles are already written to work unattended — they loop on the board and wake when it is
+their turn — but two things assume someone is in the room, and both are settings, not code:
+
+```bash
+export AGENT_TEAM_CLAUDE_FLAGS="--permission-mode acceptEdits"   # PO, Architect, Coder
+export AGENT_TEAM_CODEX_FLAGS="--sandbox danger-full-access --ask-for-approval never"  # Reviewer, UX
+./team open --tmux      # never the macOS Terminal path: AppleScript needs a logged-in desktop
+```
+
+Without the first line a role stops at its first permission prompt and waits forever. Leave the
+PO out of it if you want to be asked before a story is written — it is the role you talk to.
+
+Detach with `Ctrl-b d`; the tmux session keeps running after you log out. On a Mac, `caffeinate -s`
+keeps the machine awake. One thing to watch: `wait-for` deliberately fails closed — if the network
+or `gh` goes down it prints why and stops rather than looping on a board it cannot trust, so a
+transient outage leaves roles idle until something restarts them.
+
 ## Upgrading a project's team
 
 Inside any clone: `/agent-team upgrade` — or by hand, `git submodule update --remote .claude/skills/agent-team`, commit, push. Every project records its pinned version in `.team/team.md` and in the scaffold commit.

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # Product Owner (Fable 5.1). This is the one you talk to.
 [ $# -gt 0 ] || set -- 'Begin. Follow the "On start" section of your role.'
+# On a host nobody is sitting at, set AGENT_TEAM_CLAUDE_FLAGS (e.g. --permission-mode acceptEdits)
+# — the default is empty, which means this role asks before it acts, like any claude session.
+: "${AGENT_TEAM_CLAUDE_FLAGS:=}"
+# shellcheck disable=SC2086
 exec "$(dirname "$0")/_start" po product-owner.md \
-  claude --model claude-fable-5-1 --append-system-prompt-file ROLEFILE "$@"
+  claude --model claude-fable-5-1 --append-system-prompt-file ROLEFILE $AGENT_TEAM_CLAUDE_FLAGS "$@"

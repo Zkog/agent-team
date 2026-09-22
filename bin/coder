@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # Coder (Opus 5). Picks up planned stories and review feedback.
 [ $# -gt 0 ] || set -- 'Begin. Follow the "On start" section of your role.'
+# On a host nobody is sitting at, set AGENT_TEAM_CLAUDE_FLAGS (e.g. --permission-mode acceptEdits)
+# — the default is empty, which means this role asks before it acts, like any claude session.
+: "${AGENT_TEAM_CLAUDE_FLAGS:=}"
+# shellcheck disable=SC2086
 exec "$(dirname "$0")/_start" coder coder.md \
-  claude --model opus --append-system-prompt-file ROLEFILE "$@"
+  claude --model opus --append-system-prompt-file ROLEFILE $AGENT_TEAM_CLAUDE_FLAGS "$@"
