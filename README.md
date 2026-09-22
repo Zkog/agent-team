@@ -11,7 +11,7 @@ See [SKILL.md](SKILL.md) for the design and [team/TEAM.md](team/TEAM.md) for the
 One command, from nothing to a running workspace:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/fltman/agent-team/main/new-project.sh | bash -s -- myproj
+curl -sL https://raw.githubusercontent.com/Zkog/agent-team/main/new-project.sh | bash -s -- myproj
 ```
 
 It creates the GitHub repo if needed (private by default, `--public` to change), makes `./myproj-team/`, clones `po/`, pins the newest tagged team version as a submodule, scaffolds, pushes, clones `architect/`, `coder/`, `reviewer/`, `ux/`, writes `./team` — and opens every role in its own window: tiled Terminal windows on macOS, a tiled tmux session elsewhere (`--no-open` to skip). From a clone of this repo, `./new-project.sh myproj` does the same.
