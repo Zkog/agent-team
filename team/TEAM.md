@@ -13,9 +13,10 @@ The team itself is a git submodule pinned to a version; the project's own files 
 | Architect | Fable 5.1 | `.team/plans/` on main | production code |
 | Coder | Opus 5 | code + tests on `feat/NNN-*`, PRs, `.team/notes/` on main | scope changes, merging |
 | Reviewer | Codex (GPT) | `.team/reviews/` on the PR branch, reviews on GitHub | rewriting the code |
+| UX | GPT-5.6 sol (Codex) | `.team/icons/` + the icon folder from `AGENTS.md`, on main | wireframes, layouts, code |
 | Human | — | merging | — |
 
-Each role works in its own clone of this repo, in its own terminal, unattended: Architect, Coder and Reviewer sit in a loop on `bin/wait-for <role>`, which returns the moment the board has something in their lane. Nobody looks at anyone else's working directory. **All communication is git**: pull before you work, push when you hand off, and the next role wakes up. The human talks to the PO and merges. Always.
+Each role works in its own clone of this repo, in its own terminal, unattended: Architect, Coder, Reviewer and UX sit in a loop on `bin/wait-for <role>`, which returns the moment the board has something in their lane. Nobody looks at anyone else's working directory. **All communication is git**: pull before you work, push when you hand off, and the next role wakes up. The human talks to the PO and merges. Always.
 
 ## How work flows
 
@@ -29,6 +30,8 @@ story → plan → branch + PR → review → fixes → human merges
 4. **Reviewer** pulls, `gh pr checkout`, reviews, writes `.team/reviews/NNN-slug.md` (with `verdict:`) on the PR branch, pushes. That push is the decision; a `gh pr review --comment` mirrors it on GitHub.
 5. **Coder** pulls the branch, fixes, pushes.
 6. **Human** merges.
+
+Icons are a side lane, not a step. Whoever first sees that an icon is missing — the PO while writing the story, the Coder halfway through the build — writes `.team/icons/NNN-slug.md` from `$TEAM/templates/icons.md` on main and carries on; a placeholder is fine. The board shows an extra `needs-icons` row next to the story's own, the **UX** draws the icons, commits them to the icon folder on main, and sets `status: delivered`. The Coder takes them with `git merge origin/main` on the branch.
 
 ## Status is derived, never written
 
@@ -45,6 +48,7 @@ Nobody edits a status field. The board (`$TEAM/../bin/status`, or `./team status
 | `.team/reviews/NNN-*` on the PR branch says `verdict: request-changes` | `changes-requested` — Coder's turn |
 | it says `verdict: approve` | `approved` — human merges |
 | PR merged | `done` |
+| `.team/icons/NNN-*.md` exists without `status: delivered` | an extra `needs-icons` row — UX's turn, whatever the story itself is doing |
 
 Because every role writes in a different folder or on a different branch, there is nothing to conflict on. `git log -- .team/` is the team's history; `git log --author=Coder` is one role's.
 
@@ -59,4 +63,4 @@ Because every role writes in a different folder or on a different branch, there 
 
 ## If you are Codex
 
-You are the **Reviewer**. Read `$TEAM/roles/reviewer.md` and do that job. You do not implement features.
+Two roles run on Codex, on different models, and the prompt you were started with names which one you are: the **Reviewer** (`$TEAM/roles/reviewer.md`) or the **UX** (`$TEAM/roles/ux.md`). Read that file and do that job. Neither of you implements features.

@@ -13,3 +13,4 @@ This repo is worked on by an agent team. The team's rulebook, roles and template
 - Run tests:
 - Lint / format:
 - Default branch: main
+- Icons: assets/icons/   <!-- where the UX commits icon PNGs; change it to wherever this project keeps them -->

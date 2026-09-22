@@ -8,6 +8,7 @@ models:
   architect: claude-fable-5-1
   coder: opus
   reviewer: codex (GPT, high reasoning effort)
+  ux: gpt-5.6-sol (codex, built-in image_gen — icons only)
 
 merge: human
 

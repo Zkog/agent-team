@@ -10,6 +10,9 @@
 #   in-review          PR open, no review yet or new commits since → reviewer
 #   changes-requested  review file on the branch says so           → coder
 #   approved           review file on the branch says so           → human (merge)
+#   needs-icons        an icon request is not delivered yet        → ux
+# The icon request is an extra row next to the story's own, not a replacement for it: the
+# Coder asked for icons and kept building, so the story stays in whatever lane it was in.
 # The verdict is the `verdict:` line of .team/reviews/NNN-*.md on the PR branch — git, not
 # GitHub's review decision (which GitHub refuses when one account authored the PR and reviews it).
 #   done / closed      PR merged / closed                         → —
@@ -49,6 +52,7 @@ else
 fi
 
 stories="$(git ls-tree -r --name-only "$MAIN" -- .team/backlog/ 2>/dev/null | grep -E '/[0-9]{3}-.*\.md$' | sort)"
+icons="$(git ls-tree -r --name-only "$MAIN" -- .team/icons/ 2>/dev/null | grep -E '/[0-9]{3}-.*\.md$' | sort)"
 if [ -z "$stories" ]; then [ "$TSV" -eq 1 ] || echo "backlog is empty"; exit 0; fi
 
 first_line() { git show "$MAIN:$1" 2>/dev/null | sed -n "s/^$2: *//p" | head -1; }
@@ -111,4 +115,12 @@ while IFS= read -r story; do
   fi
   if [ "$TSV" -eq 1 ]; then printf '%s\t%s\t%s\t%s\t%s\n' "$id" "$status" "$title" "$next" "$where"
   else printf '%-4s %-18s %-38s %-10s %s\n' "$id" "$status" "${title:0:38}" "$next" "$where"; fi
+
+  # Icons run alongside the story, not inside it. A request whose `status:` is anything but
+  # `delivered` — including a delivered one the Coder reopened — is the UX's, and only theirs.
+  icon="$(printf '%s\n' "$icons" | grep "/${id}-" | head -1)"
+  if [ -n "$icon" ] && [ "$(first_line "$icon" status)" != "delivered" ]; then
+    if [ "$TSV" -eq 1 ]; then printf '%s\t%s\t%s\t%s\t%s\n' "$id" needs-icons "$title" ux "$icon"
+    else printf '%-4s %-18s %-38s %-10s %s\n' "$id" needs-icons "${title:0:38}" ux "$icon"; fi
+  fi
 done <<< "$stories"

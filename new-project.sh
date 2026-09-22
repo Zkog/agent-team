@@ -13,9 +13,9 @@
 #   --team-url      the agent-team repo to pin (default: the clone this script runs from,
 #                   else https://github.com/fltman/agent-team.git)
 #   --team-version  tag to pin (default: newest tag on the team repo)
-#   --no-open       do not open the four role windows at the end
+#   --no-open       do not open the role windows at the end
 #
-# Result: DIR/team launcher, DIR/po/ (with the submodule), DIR/architect/, DIR/coder/, DIR/reviewer/
+# Result: DIR/team launcher, DIR/po/ (with the submodule), DIR/architect/, DIR/coder/, DIR/reviewer/, DIR/ux/
 
 set -euo pipefail
 
@@ -102,7 +102,7 @@ echo
 # 4. scaffold, push, sibling clones, launcher
 bash .claude/skills/agent-team/scripts/init.sh --name "$NAME"
 
-# 5. open the four role windows (macOS Terminal 2×2, or tmux elsewhere)
+# 5. open one window per role (macOS Terminal, tiled, or tmux elsewhere)
 if [ "$OPEN" = yes ] && [ -t 1 ]; then
   echo
   "$WS/team" open

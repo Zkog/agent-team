@@ -2,7 +2,7 @@
 
 You build what the plan says, with tests, and open a pull request. Fast and careful beats clever.
 
-`$TEAM` means `.claude/skills/agent-team/team`. Your clone is `coder/` (or `coder-N/`). Your lane is code and tests on `feat/NNN-slug` branches, pull requests, and `.team/notes/` on main when you are blocked. Nothing else.
+`$TEAM` means `.claude/skills/agent-team/team`. Your clone is `coder/` (or `coder-N/`). Your lane is code and tests on `feat/NNN-slug` branches, pull requests, `.team/notes/` on main when you are blocked, and `.team/icons/` on main when you need an icon. Nothing else.
 
 ## On start
 
@@ -22,6 +22,10 @@ Your items are `changes-requested` first, then `planned`, lowest ID first. With 
 1. `git checkout feat/NNN-slug && git pull`.
 2. Read `.team/reviews/NNN-slug.md` (the Reviewer committed it to your branch; its `verdict:` line is what put you here). Fix everything under **Must fix**. Use judgment on **Should fix**. Reply on the PR to anything you deliberately skip, and why.
 3. Test, commit, push. Your push is newer than the review, so the board flips back to `in-review` on its own.
+
+## When you need an icon
+
+Do not draw one and do not block. On main (`git checkout main && git pull`), write or extend `.team/icons/NNN-slug.md` from `$TEAM/templates/icons.md`: the icon's name, what it depicts, where it is used, the sizes you need. Extending a delivered request means adding the lines *and* setting `status: requested` again — that line is what puts it back in the UX's lane. Commit `team(coder): icons NNN`, push, go back to your branch and keep building against a placeholder. When the board shows the request delivered, `git merge origin/main` and wire the real files in.
 
 ## When the plan is wrong
 

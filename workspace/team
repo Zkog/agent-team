@@ -5,11 +5,12 @@
 #   ./team architect         start the Architect
 #   ./team coder [N]         start the Coder (N=2 → coder-2/)
 #   ./team reviewer [N]      start the Reviewer (Codex)
-#   ./team add coder|reviewer   clone another coder-N/ or reviewer-N/
+#   ./team ux [N]            start the UX (Codex, gpt-5.6-sol — icons)
+#   ./team add coder|reviewer|ux   clone another coder-N/, reviewer-N/ or ux-N/
 #   ./team status            the board (derived from git + GitHub)
 #   ./team log               recent team activity across all roles
 #   ./team pull              git pull (+ submodules) in every clone
-#   ./team open [--tmux]     open every role in its own window (macOS Terminal, 2×2 grid) or a tmux session
+#   ./team open [--tmux]     open every role that has a clone in its own window (tiled) or a tmux session
 #   ./team board             the board, refreshed every 30 s — keep it in a corner
 #
 # Any extra arguments after a role are passed to claude / codex.
@@ -37,12 +38,13 @@ author_for() {
     architect) echo "Architect (Fable 5.1)" ;;
     coder) echo "Coder (Opus 5)" ;;
     reviewer) echo "Reviewer (Codex)" ;;
+    ux) echo "UX (GPT-5.6 sol)" ;;
   esac
 }
 
 cmd="${1:-}"; shift || true
 case "$cmd" in
-  po|architect|coder|reviewer)
+  po|architect|coder|reviewer|ux)
     n=""; if [[ "${1:-}" =~ ^[0-9]+$ ]]; then n="$1"; shift; fi
     dir="$WS/$(folder_for "$cmd" "$n")"
     [ -d "$dir" ] || { echo "no clone at $dir — run: ./team add $cmd" >&2; exit 1; }
@@ -50,11 +52,14 @@ case "$cmd" in
     ;;
   add)
     role="${1:-}"
-    case "$role" in coder|reviewer) ;; *) echo "usage: ./team add coder|reviewer" >&2; exit 2 ;; esac
-    n=2; while [ -d "$WS/$role-$n" ]; do n=$((n+1)); done
-    git clone -q --recurse-submodules "$URL" "$WS/$role-$n"
-    git -C "$WS/$role-$n" config user.name "$(author_for "$role")"
-    echo "added $role-$n/   start it with: ./team $role $n"
+    case "$role" in coder|reviewer|ux) ;; *) echo "usage: ./team add coder|reviewer|ux" >&2; exit 2 ;; esac
+    # A workspace scaffolded before this role existed has no base clone; make that one first.
+    # Otherwise this is extra throughput: role-2, role-3, …
+    if [ ! -d "$WS/$role" ]; then folder="$role"; start="./team $role"
+    else n=2; while [ -d "$WS/$role-$n" ]; do n=$((n+1)); done; folder="$role-$n"; start="./team $role $n"; fi
+    git clone -q --recurse-submodules "$URL" "$WS/$folder"
+    git -C "$WS/$folder" config user.name "$(author_for "$role")"
+    echo "added $folder/   start it with: $start"
     ;;
   status)
     cd "$WS/po" && git fetch -q origin && exec "$BIN/status"
@@ -77,26 +82,31 @@ case "$cmd" in
     mode="terminal"; [ "${1:-}" = "--tmux" ] && mode=tmux
     [ "$(uname)" = "Darwin" ] || mode=tmux
     name="$(basename "$WS")"; name="${name%-team}"
-    roles=(po architect coder reviewer)
+    # Every role that has a clone, in reading order. A project that never asked for icons
+    # has no ux/ and gets four windows; one that did gets five.
+    roles=()
+    for r in po architect coder reviewer ux; do [ -d "$WS/$r" ] && roles+=("$r"); done
+    [ ${#roles[@]} -gt 0 ] || { echo "no role clones in $WS" >&2; exit 1; }
     if [ "$mode" = tmux ]; then
-      command -v tmux >/dev/null || { echo "tmux not found (brew install tmux), or run ./team <role> in four terminals" >&2; exit 1; }
+      command -v tmux >/dev/null || { echo "tmux not found (brew install tmux), or run ./team <role> in one terminal each" >&2; exit 1; }
       tmux has-session -t "$name" 2>/dev/null && { echo "tmux session '$name' already exists — attaching"; exec tmux attach -t "$name"; }
-      p0=$(tmux new-session -d -s "$name" -n team -c "$WS/po" -P -F '#{pane_id}' "$WS/team po")
-      tmux select-pane -t "$p0" -T po
-      p1=$(tmux split-window -h -t "$p0" -c "$WS/architect" -P -F '#{pane_id}' "$WS/team architect")
-      tmux select-pane -t "$p1" -T architect
-      p2=$(tmux split-window -v -t "$p0" -c "$WS/coder" -P -F '#{pane_id}' "$WS/team coder")
-      tmux select-pane -t "$p2" -T coder
-      p3=$(tmux split-window -v -t "$p1" -c "$WS/reviewer" -P -F '#{pane_id}' "$WS/team reviewer")
-      tmux select-pane -t "$p3" -T reviewer
+      p0=$(tmux new-session -d -s "$name" -n team -c "$WS/${roles[0]}" -P -F '#{pane_id}' "$WS/team ${roles[0]}")
+      tmux select-pane -t "$p0" -T "${roles[0]}"
+      for role in "${roles[@]:1}"; do
+        p=$(tmux split-window -t "$name":team -c "$WS/$role" -P -F '#{pane_id}' "$WS/team $role") || {
+          echo "warning: no room for $role — start it with ./team $role" >&2; continue; }
+        tmux select-pane -t "$p" -T "$role"
+        tmux select-layout -t "$name":team tiled >/dev/null   # retile after each split, or the next one has no room
+      done
       tmux select-pane -t "$p0"
       tmux set-option -t "$name" pane-border-status top >/dev/null
       exec tmux attach -t "$name"
     fi
-    # macOS Terminal.app: four windows tiled 2×2 — PO top-left, Architect top-right, Coder bottom-left, Reviewer bottom-right
+    # macOS Terminal.app: two columns, as many rows as it takes — PO top-left, then reading order
     read -r sw sh <<< "$(osascript -e 'tell application "Finder" to get bounds of window of desktop' | awk -F', ' '{print $3, $4}')"
     [ -n "${sw:-}" ] || { sw=1440; sh=900; }
-    top=25; w=$(( sw / 2 )); h=$(( (sh - top) / 2 ))
+    rows=$(( (${#roles[@]} + 1) / 2 ))
+    top=25; w=$(( sw / 2 )); h=$(( (sh - top) / rows ))
     i=0
     for role in "${roles[@]}"; do
       col=$(( i % 2 )); row=$(( i / 2 ))
@@ -112,7 +122,7 @@ end tell
 APPLESCRIPT
       i=$(( i + 1 ))
     done
-    echo "opened 4 Terminal windows for $name. Board: ./team board"
+    echo "opened ${#roles[@]} Terminal windows for $name. Board: ./team board"
     ;;
-  *) sed -n '2,16p' "$0" ;;
+  *) sed -n '2,17p' "$0" ;;
 esac

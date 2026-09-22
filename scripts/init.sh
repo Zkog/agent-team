@@ -8,7 +8,7 @@
 #
 # Result (siblings of po/):
 #   ../team          launcher
-#   ../architect/    ../coder/    ../reviewer/     clones with the submodule checked out
+#   ../architect/  ../coder/  ../reviewer/  ../ux/    clones with the submodule checked out
 #
 # The repo may be empty. Per-project files (AGENTS.md, CLAUDE.md, .team/) are
 # scaffolded if missing, then everything is committed and pushed before the
@@ -68,7 +68,7 @@ fi
 
 # sibling clones
 echo
-for r in "architect|Architect (Fable 5.1)" "coder|Coder (Opus 5)" "reviewer|Reviewer (Codex)"; do
+for r in "architect|Architect (Fable 5.1)" "coder|Coder (Opus 5)" "reviewer|Reviewer (Codex)" "ux|UX (GPT-5.6 sol)"; do
   IFS='|' read -r folder author <<< "$r"
   if [ -d "$WS/$folder" ]; then echo "exists: $folder/ (left alone)"; continue; fi
   git clone -q --recurse-submodules "$URL" "$WS/$folder" 2>&1 | grep -v -e 'cloned an empty' -e 'nonexistent ref' || true
@@ -87,7 +87,7 @@ echo
 echo "workspace ready: $WS"
 echo
 echo "  cd $WS"
-echo "  ./team open        # four windows, every role starts working"
+echo "  ./team open        # one window per role, every role starts working"
 echo "  ./team board       # the board, auto-refreshing"
 echo
 echo "next: fill in 'Project conventions' in po/AGENTS.md, commit, push."

@@ -1,6 +1,6 @@
 ---
 name: agent-team
-description: A multi-model agent team — Product Owner and Architect on Fable 5.1, Coder on Opus 5, Reviewer on Codex (GPT) — that lives in the project as a pinned git submodule and works from separate clones, one terminal per role, coordinating only through git. /agent-team init sets up the workspace, /agent-team status shows the board, /agent-team upgrade bumps the pinned version.
+description: A multi-model agent team — Product Owner and Architect on Fable 5.1, Coder on Opus 5, Reviewer on Codex (GPT), UX on GPT-5.6 sol for icons — that lives in the project as a pinned git submodule and works from separate clones, one terminal per role, coordinating only through git. /agent-team init sets up the workspace, /agent-team status shows the board, /agent-team upgrade bumps the pinned version.
 argument-hint: "init [--name project] | status | upgrade"
 disable-model-invocation: true
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
@@ -12,11 +12,12 @@ One repo, one clone per role, one terminal per clone. All communication is git. 
 
 ```
 <workspace>/
-├── team          launcher: ./team po | architect | coder [N] | reviewer | status | log | add coder
+├── team          launcher: ./team po | architect | coder [N] | reviewer | ux | status | log | add coder
 ├── po/           clone · Product Owner · Fable 5.1 · writes .team/backlog/  on main
 ├── architect/    clone · Architect     · Fable 5.1 · writes .team/plans/    on main
 ├── coder/        clone · Coder         · Opus 5    · code on feat/NNN-*, PRs, .team/notes/
-└── reviewer/     clone · Reviewer      · Codex     · .team/reviews/ on the PR branch + gh pr review
+├── reviewer/     clone · Reviewer      · Codex     · .team/reviews/ on the PR branch + gh pr review
+└── ux/           clone · UX       · GPT-5.6 sol    · icon PNGs from image_gen + .team/icons/ on main
 ```
 
 Inside every clone:
@@ -25,10 +26,10 @@ Inside every clone:
 .claude/skills/agent-team/   this submodule: SKILL.md, bin/, team/{TEAM.md,roles,templates}
 AGENTS.md                    project conventions + pointer to team/TEAM.md   (Codex reads this)
 CLAUDE.md                    "read AGENTS.md"
-.team/                       team.md (human, models, pinned version) + the lanes: backlog/ plans/ notes/ reviews/
+.team/                       team.md (human, models, pinned version) + the lanes: backlog/ plans/ notes/ reviews/ icons/
 ```
 
-Status is never written — it is derived from git and GitHub (`bin/status`). Each role writes only in its own lane, so nothing conflicts. Architect, Coder and Reviewer run unattended: `bin/wait-for <role>` blocks until the board has something in their lane, so a pushed story flows through plan → PR → review with no nudging. The human talks to the PO and merges.
+Status is never written — it is derived from git and GitHub (`bin/status`). Each role writes only in its own lane, so nothing conflicts. Architect, Coder, Reviewer and UX run unattended: `bin/wait-for <role>` blocks until the board has something in their lane, so a pushed story flows through plan → PR → review with no nudging. Icons run beside that line: a request file from the PO or the Coder puts an extra `needs-icons` row on the board and the UX delivers PNGs to main while the story keeps moving. The human talks to the PO and merges.
 
 Arguments given: `$ARGUMENTS`
 
@@ -40,17 +41,17 @@ You are being run inside the first clone, which must be named `po/` and already 
 bash .claude/skills/agent-team/scripts/init.sh [--name "<project name>"]
 ```
 
-It scaffolds `AGENTS.md`, `CLAUDE.md` and `.team/` if missing, commits and pushes (the commit records this skill's `git describe` version), clones `architect/`, `coder/`, `reviewer/` next to `po/` with the submodule checked out, sets each clone's git author to its role, and writes `../team`.
+It scaffolds `AGENTS.md`, `CLAUDE.md` and `.team/` if missing, commits and pushes (the commit records this skill's `git describe` version), clones `architect/`, `coder/`, `reviewer/`, `ux/` next to `po/` with the submodule checked out, sets each clone's git author to its role, and writes `../team`.
 
 Then open `AGENTS.md` and fill in **Project conventions** (stack, test command, lint) from what you can see in the repo — ask only if you cannot tell. Commit and push. Tell the user, briefly:
 
 ```
 cd <workspace>
-./team open        # four windows; every role starts working, the three workers wait on the board
+./team open        # one window per role; every role starts working, the workers wait on the board
 ./team board       # the board, auto-refreshing
 ```
 
-`./team po` etc. start a single role by hand. Codex should run with high reasoning effort.
+`./team po` etc. start a single role by hand. The Reviewer's Codex should run with high reasoning effort; the UX's model is `gpt-5.6-sol` (override with `AGENT_TEAM_UX_MODEL`) because it has the built-in `image_gen` tool.
 
 ## `status`
 
@@ -69,7 +70,8 @@ Show the user what changed (`git -C .claude/skills/agent-team log --oneline <old
 
 - **The team is a submodule, not a global install.** Version compatibility is per project: a project pins the team it was built with and upgrades when it chooses. Any fresh clone of the project has the whole team; nothing lives in `~/.claude`.
 - **Separate clones.** Four sessions in one working directory step on each other the moment the Coder checks out a branch. Clones are dumb and robust; GitHub is the hub.
-- **Derived status, lanes.** Story → ready, plan → planned, branch → in-progress, PR → in-review, review decision → approved / changes-requested, merged → done. PO → `backlog/`, Architect → `plans/`, Coder → code + `notes/`, Reviewer → `reviews/`. Nothing to sync, nothing to conflict on.
+- **Derived status, lanes.** Story → ready, plan → planned, branch → in-progress, PR → in-review, review decision → approved / changes-requested, merged → done. PO → `backlog/`, Architect → `plans/`, Coder → code + `notes/`, Reviewer → `reviews/`, UX → `icons/` + the icon folder. Nothing to sync, nothing to conflict on.
 - **A different model reviews.** Different mistakes. Never the same family as the Coder.
+- **The UX only draws icons.** It is an image model with a git account, on its own side lane. Nobody waits for it: the Coder asks, keeps building against a placeholder, and merges the PNGs from main when they land.
 - **Short role files.** Frontier models get worse with over-prescriptive instructions. Per-project tweaks go in `.team/roles/<role>.md`, which overrides the submodule's file.
 - **Agents sign their work** and never pose as the human. **The human merges.**
