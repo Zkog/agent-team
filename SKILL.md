@@ -1,6 +1,6 @@
 ---
 name: agent-team
-description: A multi-model agent team — Product Owner and Architect on Fable 5.1, Coder on Opus 5, Reviewer on Codex (GPT), UX on GPT-5.6 sol for icons — that lives in the project as a pinned git submodule and works from separate clones, one terminal per role, coordinating only through git. /agent-team init sets up the workspace, /agent-team status shows the board, /agent-team upgrade bumps the pinned version.
+description: A multi-model agent team — Product Owner and Architect on Fable 5.1, Coder on Opus 5.5, Reviewer on Codex (GPT), UX on GPT-5.6 sol for icons — that lives in the project as a pinned git submodule and works from separate clones, one terminal per role, coordinating only through git. /agent-team init sets up the workspace, /agent-team status shows the board, /agent-team upgrade bumps the pinned version.
 argument-hint: "init [--name project] | status | upgrade"
 disable-model-invocation: true
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
@@ -15,7 +15,7 @@ One repo, one clone per role, one terminal per clone. All communication is git. 
 ├── team          launcher: ./team po | architect | coder [N] | reviewer | ux | status | log | add coder
 ├── po/           clone · Product Owner · Fable 5.1 · writes .team/backlog/  on main
 ├── architect/    clone · Architect     · Fable 5.1 · writes .team/plans/    on main
-├── coder/        clone · Coder         · Opus 5    · code on feat/NNN-*, PRs, .team/notes/
+├── coder/        clone · Coder         · Opus 5.5  · code on feat/NNN-*, PRs, .team/notes/
 ├── reviewer/     clone · Reviewer      · Codex     · .team/reviews/ on the PR branch + gh pr review
 └── ux/           clone · UX       · GPT-5.6 sol    · icon PNGs from image_gen + .team/icons/ on main
 ```

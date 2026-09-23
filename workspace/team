@@ -36,7 +36,7 @@ author_for() {
   case "$1" in
     po) echo "Product Owner (Fable 5.1)" ;;
     architect) echo "Architect (Fable 5.1)" ;;
-    coder) echo "Coder (Opus 5)" ;;
+    coder) echo "Coder (Opus 5.5)" ;;
     reviewer) echo "Reviewer (Codex)" ;;
     ux) echo "UX (GPT-5.6 sol)" ;;
   esac

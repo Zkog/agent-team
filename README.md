@@ -1,7 +1,7 @@
 # agent-team
 
 A Claude Code skill that runs a multi-model agent team on a GitHub repo:
-Product Owner and Architect on Fable 5.1, Coder on Opus 5, Reviewer on Codex (GPT), UX on GPT-5.6 sol drawing the icons.
+Product Owner and Architect on Fable 5.1, Coder on Opus 5.5, Reviewer on Codex (GPT), UX on GPT-5.6 sol drawing the icons.
 The team lives **in the project** as a pinned git submodule. One clone per role, one terminal per clone, all communication through git. Status is derived, never written. The human merges.
 
 See [SKILL.md](SKILL.md) for the design and [team/TEAM.md](team/TEAM.md) for the rulebook the agents get.

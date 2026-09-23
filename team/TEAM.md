@@ -11,7 +11,7 @@ The team itself is a git submodule pinned to a version; the project's own files 
 |---|---|---|---|
 | Product Owner | Fable 5.1 | `.team/backlog/` on main | plans, code |
 | Architect | Fable 5.1 | `.team/plans/` on main | production code |
-| Coder | Opus 5 | code + tests on `feat/NNN-*`, PRs, `.team/notes/` on main | scope changes, merging |
+| Coder | Opus 5.5 | code + tests on `feat/NNN-*`, PRs, `.team/notes/` on main | scope changes, merging |
 | Reviewer | Codex (GPT) | `.team/reviews/` on the PR branch, reviews on GitHub | rewriting the code |
 | UX | GPT-5.6 sol (Codex) | `.team/icons/` + the icon folder from `AGENTS.md`, on main | wireframes, layouts, code |
 | Human | — | merging | — |
