@@ -5,8 +5,9 @@
 #   ./team architect         start the Architect
 #   ./team coder [N]         start the Coder (N=2 → coder-2/)
 #   ./team reviewer [N]      start the Reviewer (Codex)
+#   ./team images [N]        start Images (GPT-6 Sol, lightweight)
 #   ./team ux [N]            start the UX (Codex, gpt-5.6-sol — icons)
-#   ./team add coder|reviewer|ux   clone another coder-N/, reviewer-N/ or ux-N/
+#   ./team add coder|reviewer|ux|images   clone another coder-N/, reviewer-N/ or ux-N/
 #   ./team status            the board (derived from git + GitHub)
 #   ./team log               recent team activity across all roles
 #   ./team pull              git pull (+ submodules) in every clone
@@ -26,8 +27,17 @@ else
   sup="$(git -C "$here" rev-parse --show-superproject-working-tree 2>/dev/null || true)"
   if [ -n "$sup" ]; then WS="$(dirname "$sup")"; else WS="$here"; fi
 fi
-URL="$(git -C "$WS/po" remote get-url origin 2>/dev/null || true)"
-DEFAULT="$(git -C "$WS/po" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)"
+PRIMARY=po
+[ -d "$WS/po" ] || PRIMARY=coder
+PROFILE="$(sed -n 's/^profile: *//p' "$WS/$PRIMARY/.team/team.md" 2>/dev/null || true)"
+PROFILE="${PROFILE:-full}"
+case "$PROFILE" in
+  full) ACTIVE_ROLES=(po architect coder reviewer ux) ;;
+  lightweight) ACTIVE_ROLES=(coder images reviewer) ;;
+  *) echo "invalid profile: $PROFILE" >&2; exit 2 ;;
+esac
+URL="$(git -C "$WS/$PRIMARY" remote get-url origin 2>/dev/null || true)"
+DEFAULT="$(git -C "$WS/$PRIMARY" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)"
 [ -n "$DEFAULT" ] || DEFAULT=main
 BIN=".claude/skills/agent-team/bin"
 
@@ -38,13 +48,15 @@ author_for() {
     architect) echo "Architect (Fable 5.1)" ;;
     coder) echo "Coder (Opus 5.5)" ;;
     reviewer) echo "Reviewer (Codex)" ;;
+    images) echo "Images (GPT-6 Sol)" ;;
     ux) echo "UX (GPT-5.6 sol)" ;;
   esac
 }
 
 cmd="${1:-}"; shift || true
 case "$cmd" in
-  po|architect|coder|reviewer|ux)
+  po|architect|coder|reviewer|ux|images)
+    [[ " ${ACTIVE_ROLES[*]} " = *" $cmd "* ]] || { echo "$cmd is not part of the $PROFILE profile" >&2; exit 2; }
     n=""; if [[ "${1:-}" =~ ^[0-9]+$ ]]; then n="$1"; shift; fi
     dir="$WS/$(folder_for "$cmd" "$n")"
     [ -d "$dir" ] || { echo "no clone at $dir — run: ./team add $cmd" >&2; exit 1; }
@@ -52,7 +64,8 @@ case "$cmd" in
     ;;
   add)
     role="${1:-}"
-    case "$role" in coder|reviewer|ux) ;; *) echo "usage: ./team add coder|reviewer|ux" >&2; exit 2 ;; esac
+    case "$role" in coder|reviewer|ux|images) ;; *) echo "usage: ./team add coder|reviewer|ux|images" >&2; exit 2 ;; esac
+    [[ " ${ACTIVE_ROLES[*]} " = *" $role "* ]] || { echo "$role is not part of the $PROFILE profile" >&2; exit 2; }
     # A workspace scaffolded before this role existed has no base clone; make that one first.
     # Otherwise this is extra throughput: role-2, role-3, …
     if [ ! -d "$WS/$role" ]; then folder="$role"; start="./team $role"
@@ -62,10 +75,10 @@ case "$cmd" in
     echo "added $folder/   start it with: $start"
     ;;
   status)
-    cd "$WS/po" && git fetch -q origin && exec "$BIN/status"
+    cd "$WS/$PRIMARY" && git fetch -q origin && exec "$BIN/status"
     ;;
   log)
-    cd "$WS/po" && git fetch -q origin && \
+    cd "$WS/$PRIMARY" && git fetch -q origin && \
       git log "origin/$DEFAULT" --all --date-order --date=short --format='%C(yellow)%h%C(reset) %ad %C(cyan)%<(26,trunc)%an%C(reset) %s' -- . | head -40
     ;;
   pull)
@@ -85,7 +98,7 @@ case "$cmd" in
     # Every role that has a clone, in reading order. A project that never asked for icons
     # has no ux/ and gets four windows; one that did gets five.
     roles=()
-    for r in po architect coder reviewer ux; do [ -d "$WS/$r" ] && roles+=("$r"); done
+    for r in "${ACTIVE_ROLES[@]}"; do [ -d "$WS/$r" ] && roles+=("$r"); done
     [ ${#roles[@]} -gt 0 ] || { echo "no role clones in $WS" >&2; exit 1; }
     if [ "$mode" = tmux ]; then
       command -v tmux >/dev/null || { echo "tmux not found (brew install tmux), or run ./team <role> in one terminal each" >&2; exit 1; }

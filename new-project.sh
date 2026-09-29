@@ -6,26 +6,28 @@
 #   ~/Projekt/agent-team/new-project.sh <name>
 #
 # Usage: new-project.sh <name | owner/name> [--public|--private] [--dir DIR]
-#                       [--team-url URL] [--team-version TAG] [--no-open]
+#                       [--team-url URL] [--team-version TAG] [--profile full|lightweight] [--no-open]
 #
 #   <name>          GitHub repo. Created if it does not exist (private by default).
 #   --dir DIR       workspace directory (default: ./<name>-team)
 #   --team-url      the agent-team repo to pin (default: the clone this script runs from,
 #                   else https://github.com/Zkog/agent-team.git)
 #   --team-version  tag to pin (default: newest tag on the team repo)
+#   --profile      full (default) or lightweight (coder, images, reviewer)
 #   --no-open       do not open the role windows at the end
 #
 # Result: DIR/team launcher, DIR/po/ (with the submodule), DIR/architect/, DIR/coder/, DIR/reviewer/, DIR/ux/
 
 set -euo pipefail
 
-NAME=""; VIS="--private"; DIR=""; TEAM_URL=""; TEAM_VERSION=""; TEAM_VERSION_EXPLICIT=""; OPEN=yes
+NAME=""; VIS="--private"; DIR=""; TEAM_URL=""; TEAM_VERSION=""; TEAM_VERSION_EXPLICIT=""; OPEN=yes; PROFILE=full
 while [ $# -gt 0 ]; do
   case "$1" in
     --public|--private) VIS="$1"; shift ;;
     --dir) DIR="$2"; shift 2 ;;
     --team-url) TEAM_URL="$2"; shift 2 ;;
     --team-version) TEAM_VERSION="$2"; TEAM_VERSION_EXPLICIT=1; shift 2 ;;
+    --profile) PROFILE="$2"; shift 2 ;;
     --no-open) OPEN=no; shift ;;
     -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
     -*) echo "unknown option: $1" >&2; exit 2 ;;
@@ -33,6 +35,8 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -n "$NAME" ] || { echo "usage: new-project.sh <name | owner/name> [--public|--private] [--dir DIR]" >&2; exit 2; }
+
+case "$PROFILE" in full) PRIMARY=po ;; lightweight) PRIMARY=coder ;; *) echo "invalid profile: $PROFILE" >&2; exit 2 ;; esac
 
 for t in git gh; do command -v "$t" >/dev/null || { echo "error: $t not found" >&2; exit 2; }; done
 gh auth status >/dev/null 2>&1 || { echo "error: gh is not logged in (gh auth login)" >&2; exit 2; }
@@ -71,12 +75,12 @@ else
   echo "created:     https://github.com/$REPO"
 fi
 
-# 2. workspace + po/
-[ -e "$DIR/po" ] && { echo "error: $DIR/po already exists" >&2; exit 2; }
+# 2. workspace + primary clone
+[ -e "$DIR/$PRIMARY" ] && { echo "error: $DIR/$PRIMARY already exists" >&2; exit 2; }
 mkdir -p "$DIR"
 WS="$(cd "$DIR" && pwd)"
-git clone -q --recurse-submodules "https://github.com/$REPO.git" "$DIR/po" 2>&1 | grep -v 'cloned an empty' || true
-cd "$DIR/po"
+git clone -q --recurse-submodules "https://github.com/$REPO.git" "$DIR/$PRIMARY" 2>&1 | grep -v 'cloned an empty' || true
+cd "$DIR/$PRIMARY"
 
 # 3. pin the team (or respect the pin an existing project already has)
 if git ls-files --error-unmatch .claude/skills/agent-team >/dev/null 2>&1; then
@@ -100,7 +104,16 @@ fi
 echo
 
 # 4. scaffold, push, sibling clones, launcher
-bash .claude/skills/agent-team/scripts/init.sh --name "$NAME"
+if [ "$PROFILE" = lightweight ]; then
+  if ! grep -q -- '--profile' .claude/skills/agent-team/scripts/init.sh; then
+    echo "error: pinned team version does not support lightweight; select a newer --team-version" >&2
+    exit 2
+  fi
+  bash .claude/skills/agent-team/scripts/init.sh --name "$NAME" --profile lightweight
+else
+  # Older full-team releases do not accept --profile.
+  bash .claude/skills/agent-team/scripts/init.sh --name "$NAME"
+fi
 
 # 5. open one window per role (macOS Terminal, tiled, or tmux elsewhere)
 if [ "$OPEN" = yes ] && [ -t 1 ]; then

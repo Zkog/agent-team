@@ -1,7 +1,7 @@
 ---
 name: agent-team
-description: A multi-model agent team — Product Owner and Architect on Fable 5.1, Coder on Opus 5.5, Reviewer on Codex (GPT), UX on GPT-5.6 sol for icons — that lives in the project as a pinned git submodule and works from separate clones, one terminal per role, coordinating only through git. /agent-team init sets up the workspace, /agent-team status shows the board, /agent-team upgrade bumps the pinned version.
-argument-hint: "init [--name project] | status | upgrade"
+description: Full or lightweight multi-model agent teams. Lightweight uses an Opus 5.5 Coder and GPT-6 Sol Images and Reviewer. The full team is a multi-model agent team — Product Owner and Architect on Fable 5.1, Coder on Opus 5.5, Reviewer on Codex (GPT), UX on GPT-5.6 sol for icons — that lives in the project as a pinned git submodule and works from separate clones, one terminal per role, coordinating only through git. /agent-team init sets up the workspace, /agent-team status shows the board, /agent-team upgrade bumps the pinned version.
+argument-hint: "init [--name project] [--profile full|lightweight] | status | upgrade"
 disable-model-invocation: true
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 ---
@@ -33,12 +33,25 @@ Status is never written — it is derived from git and GitHub (`bin/status`). Ea
 
 Arguments given: `$ARGUMENTS`
 
+## Profiles
+
+`full` is the default and keeps the five-role workflow below. `lightweight` has
+only Coder (Opus 5.5), Images (GPT-6 Sol), and Reviewer (GPT-6 Sol). For that profile,
+read `team/profiles/lightweight/TEAM.md`. The human talks to the Coder; no PO or
+Architect is started and no plan is required. Image requests use `.team/images/`.
+
+Create it with `new-project.sh <name> --profile lightweight`. For manual init, the
+first clone must be `coder/` and the init command must include `--profile lightweight`.
+The resulting siblings are `images/` and `reviewer/`. Fill conventions in
+`coder/AGENTS.md`. `./team open` opens only these three roles. Existing configured
+projects cannot change profile via init; absent profile means full.
+
 ## `init`
 
-You are being run inside the first clone, which must be named `po/` and already contain this submodule (that is how you got here). Run:
+You are being run inside the first clone, which must be named `po/` for full or `coder/` for lightweight and already contain this submodule (that is how you got here). Run:
 
 ```bash
-bash .claude/skills/agent-team/scripts/init.sh [--name "<project name>"]
+bash .claude/skills/agent-team/scripts/init.sh [--name "<project name>"] [--profile full|lightweight]
 ```
 
 It scaffolds `AGENTS.md`, `CLAUDE.md` and `.team/` if missing, commits and pushes (the commit records this skill's `git describe` version), clones `architect/`, `coder/`, `reviewer/`, `ux/` next to `po/` with the submodule checked out, sets each clone's git author to its role, and writes `../team`.

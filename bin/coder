@@ -6,4 +6,4 @@
 : "${AGENT_TEAM_CLAUDE_FLAGS:=}"
 # shellcheck disable=SC2086
 exec "$(dirname "$0")/_start" coder coder.md \
-  claude --model opus --append-system-prompt-file ROLEFILE $AGENT_TEAM_CLAUDE_FLAGS "$@"
+  claude MODEL_ARGS --append-system-prompt-file ROLEFILE $AGENT_TEAM_CLAUDE_FLAGS "$@"

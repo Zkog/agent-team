@@ -27,6 +27,9 @@ fi
 DEFAULT="$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')"
 [ -n "$DEFAULT" ] || DEFAULT=main
 MAIN="origin/$DEFAULT"
+PROFILE="$(git show "$MAIN:.team/team.md" 2>/dev/null | sed -n 's/^profile: *//p' || true)"
+PROFILE="${PROFILE:-full}"
+case "$PROFILE" in full|lightweight) ;; *) echo "warning: invalid profile $PROFILE" >&2; exit 2 ;; esac
 
 # Every PR in the repo, in one query. It used to be one `gh pr list` per story,
 # which is a GraphQL call per story per run: a thirty-story backlog polled by
@@ -53,13 +56,14 @@ fi
 
 stories="$(git ls-tree -r --name-only "$MAIN" -- .team/backlog/ 2>/dev/null | grep -E '/[0-9]{3}-.*\.md$' | sort)"
 icons="$(git ls-tree -r --name-only "$MAIN" -- .team/icons/ 2>/dev/null | grep -E '/[0-9]{3}-.*\.md$' | sort)"
-if [ -z "$stories" ]; then [ "$TSV" -eq 1 ] || echo "backlog is empty"; exit 0; fi
+if [ -z "$stories" ]; then [ "$TSV" -eq 1 ] || echo "backlog is empty"; fi
 
 first_line() { git show "$MAIN:$1" 2>/dev/null | sed -n "s/^$2: *//p" | head -1; }
 ctime()      { git log -1 --format=%ct "$MAIN" -- "$1" 2>/dev/null || echo 0; }
 
 [ "$TSV" -eq 1 ] || printf '%-4s %-18s %-38s %-10s %s\n' ID STATUS TITLE NEXT WHERE
 while IFS= read -r story; do
+  [ -n "$story" ] || continue
   base="$(basename "$story" .md)"; id="${base%%-*}"
   title="$(first_line "$story" title)"
   plan="$(git ls-tree -r --name-only "$MAIN" -- .team/plans/ | grep "/${id}-" | head -1)"
@@ -67,11 +71,13 @@ while IFS= read -r story; do
   branch="$(git branch -r --list "origin/feat/${id}-*" | head -1 | sed 's|^ *origin/||')"
   status=""; next=""; where=""
 
-  if [ -z "$plan" ]; then
+  if [ "$PROFILE" = lightweight ] && [ -z "$branch" ]; then
+    status=ready; next=coder; where="$story"
+  elif [ "$PROFILE" != lightweight ] && [ -z "$plan" ]; then
     status=ready; next=architect
-  elif [ "$(first_line "$plan" verdict)" = "needs-split" ]; then
+  elif [ "$PROFILE" != lightweight ] && [ "$(first_line "$plan" verdict)" = "needs-split" ]; then
     status=needs-split; next=po
-  elif [ -n "$note" ] && [ "$(ctime "$note")" -gt "$(ctime "$plan")" ]; then
+  elif [ "$PROFILE" != lightweight ] && [ -n "$note" ] && [ "$(ctime "$note")" -gt "$(ctime "$plan")" ]; then
     status=needs-replan; next=architect; where="$note"
   elif [ -z "$branch" ]; then
     status=planned; next=coder; where="$plan"
@@ -124,3 +130,14 @@ while IFS= read -r story; do
     else printf '%-4s %-18s %-38s %-10s %s\n' "$id" needs-icons "${title:0:38}" ux "$icon"; fi
   fi
 done <<< "$stories"
+
+# Image requests can exist without a feature story, including standalone artwork.
+images="$(git ls-tree -r --name-only "$MAIN" -- .team/images/ 2>/dev/null | grep -E '/[0-9]{3}-.*\.md$' | sort)"
+while IFS= read -r request; do
+  [ -n "$request" ] || continue
+  [ "$(first_line "$request" status)" != delivered ] || continue
+  base="$(basename "$request" .md)"; id="${base%%-*}"
+  title="$(first_line "$request" title)"
+  if [ "$TSV" -eq 1 ]; then printf '%s\t%s\t%s\t%s\t%s\n' "$id" needs-images "$title" images "$request"
+  else printf '%-4s %-18s %-38s %-10s %s\n' "$id" needs-images "${title:0:38}" images "$request"; fi
+done <<< "$images"

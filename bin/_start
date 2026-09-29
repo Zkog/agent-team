@@ -16,13 +16,36 @@ esac
 git pull -q --rebase --autostash 2>/dev/null || echo "warning: git pull failed — check the remote before working" >&2
 git submodule update -q --init --recursive 2>/dev/null || true
 
+PROFILE="$(sed -n 's/^profile: *//p' .team/team.md 2>/dev/null || true)"
+PROFILE="${PROFILE:-full}"
+case "$PROFILE" in full|lightweight) ;; *) echo "invalid profile: $PROFILE" >&2; exit 2 ;; esac
+if [ "$PROFILE" = lightweight ]; then
+  case "$role" in coder|images|reviewer) ;; *) echo "$role is not part of lightweight" >&2; exit 2 ;; esac
+fi
+
 # project override wins over the submodule's role file
 if [ -f ".team/roles/$rolefile" ]; then
   RF=".team/roles/$rolefile"
+elif [ -f "$SKILL/team/profiles/$PROFILE/$rolefile" ]; then
+  RF="$SKILL/team/profiles/$PROFILE/$rolefile"
 else
   RF="$SKILL/team/roles/$rolefile"
 fi
 
+model_args=()
+case "$role" in
+  coder) model="${AGENT_TEAM_CODER_MODEL:-opus}"; [ "$PROFILE" != lightweight ] || model="${AGENT_TEAM_CODER_MODEL:-claude-opus-5-5}"; model_args=(--model "$model") ;;
+  reviewer) model="${AGENT_TEAM_REVIEWER_MODEL:-}"; [ "$PROFILE" != lightweight ] || model="${AGENT_TEAM_REVIEWER_MODEL:-gpt-6-sol}"; [ -z "$model" ] || model_args=(--model "$model") ;;
+  images) model_args=(--model "${AGENT_TEAM_IMAGES_MODEL:-gpt-6-sol}") ;;
+esac
+# Explicit CLI model selection wins without sending duplicate --model options.
+for a in "$@"; do
+  case "$a" in --model|-m|--model=*) model_args=() ;; esac
+done
 args=()
-for a in "$@"; do args+=("${a//ROLEFILE/$RF}"); done
+for a in "$@"; do
+  if [ "$a" = MODEL_ARGS ]; then
+    if [ ${#model_args[@]} -gt 0 ]; then args+=("${model_args[@]}"); fi
+  else args+=("${a//ROLEFILE/$RF}"); fi
+done
 exec "${args[@]}"

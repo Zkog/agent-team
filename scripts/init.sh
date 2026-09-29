@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# agent-team init — run from inside the first clone (po/) after adding the submodule.
+# agent-team init — run from inside the first clone (po/ for full, coder/ for lightweight) after adding the submodule.
 #
 #   mkdir myproj-team && cd myproj-team
 #   git clone git@github.com:me/myproj.git po && cd po
 #   git submodule add git@github.com:me/agent-team.git .claude/skills/agent-team
-#   bash .claude/skills/agent-team/scripts/init.sh [--name "Project"]      # or /agent-team init in claude
+#   bash .claude/skills/agent-team/scripts/init.sh [--name "Project"] [--profile full|lightweight] # or /agent-team init in claude
 #
 # Result (siblings of po/):
 #   ../team          launcher
@@ -18,21 +18,25 @@ set -euo pipefail
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILL_VERSION="$(git -C "$SKILL_DIR" describe --always --dirty 2>/dev/null || echo unversioned)"
 
-NAME=""
+NAME=""; PROFILE=""
 while [ $# -gt 0 ]; do
   case "$1" in
+    --profile) PROFILE="$2"; shift 2 ;;
     --name) NAME="$2"; shift 2 ;;
     -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 
-ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "error: run this inside the po/ clone" >&2; exit 2; }
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "error: run this inside the primary clone (po/ or coder/)" >&2; exit 2; }
 cd "$ROOT"
 WS="$(dirname "$ROOT")"
 
+PROFILE="${PROFILE:-$(sed -n 's/^profile: *//p' .team/team.md 2>/dev/null || true)}"
+PROFILE="${PROFILE:-full}"
+case "$PROFILE" in full) PRIMARY=po ;; lightweight) PRIMARY=coder ;; *) echo "invalid profile: $PROFILE" >&2; exit 2 ;; esac
 # sanity: we are the po/ clone, the submodule is where we expect, origin exists
-[ "$(basename "$ROOT")" = "po" ] || { echo "error: this clone must be named po/ (it is '$(basename "$ROOT")'). mv it, then rerun." >&2; exit 2; }
+[ "$(basename "$ROOT")" = "$PRIMARY" ] || { echo "error: this clone must be named $PRIMARY/ (it is '$(basename "$ROOT")'). mv it, then rerun." >&2; exit 2; }
 [ -f ".claude/skills/agent-team/SKILL.md" ] || {
   echo "error: submodule missing. Run: git submodule add <agent-team repo url> .claude/skills/agent-team" >&2; exit 2; }
 URL="$(git remote get-url origin 2>/dev/null)" || { echo "error: no 'origin' remote" >&2; exit 2; }
@@ -52,9 +56,10 @@ fi
 
 echo "agent-team $SKILL_VERSION — project: $NAME, human: $HUMAN, workspace: $WS"
 echo
-bash "$SKILL_DIR/scripts/scaffold.sh" --name "$NAME" --human "$HUMAN" --version "$SKILL_VERSION"
+bash "$SKILL_DIR/scripts/scaffold.sh" --name "$NAME" --human "$HUMAN" --version "$SKILL_VERSION" --profile "$PROFILE"
 
-git config user.name "Product Owner (Fable 5.1)"
+if [ "$PROFILE" = lightweight ]; then git config user.name "Coder (Opus 5.5)"
+else git config user.name "Product Owner (Fable 5.1)"; fi
 if [ -n "$(git status --porcelain)" ]; then
   git add -A
   git -c user.name="$HUMAN" commit -q -m "team: scaffold agent team ($SKILL_VERSION)
@@ -68,7 +73,9 @@ fi
 
 # sibling clones
 echo
-for r in "architect|Architect (Fable 5.1)" "coder|Coder (Opus 5.5)" "reviewer|Reviewer (Codex)" "ux|UX (GPT-5.6 sol)"; do
+roles=("architect|Architect (Fable 5.1)" "coder|Coder (Opus 5.5)" "reviewer|Reviewer (Codex)" "ux|UX (GPT-5.6 sol)")
+[ "$PROFILE" != lightweight ] || roles=("images|Images (GPT-6 Sol)" "reviewer|Reviewer (GPT-6 Sol)")
+for r in "${roles[@]}"; do
   IFS='|' read -r folder author <<< "$r"
   if [ -d "$WS/$folder" ]; then echo "exists: $folder/ (left alone)"; continue; fi
   git clone -q --recurse-submodules "$URL" "$WS/$folder" 2>&1 | grep -v -e 'cloned an empty' -e 'nonexistent ref' || true
@@ -90,4 +97,4 @@ echo "  cd $WS"
 echo "  ./team open        # one window per role, every role starts working"
 echo "  ./team board       # the board, auto-refreshing"
 echo
-echo "next: fill in 'Project conventions' in po/AGENTS.md, commit, push."
+echo "next: fill in 'Project conventions' in $PRIMARY/AGENTS.md, commit, push."

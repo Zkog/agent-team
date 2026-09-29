@@ -2,6 +2,7 @@
 
 human: {{HUMAN}}
 project: {{PROJECT_NAME}}
+profile: full
 
 models:
   product-owner: claude-fable-5-1

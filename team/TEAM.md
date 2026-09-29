@@ -5,6 +5,13 @@ Everyone reads the project's `AGENTS.md` first, then this file.
 Roles live in `$TEAM/roles/`, templates in `$TEAM/templates/`, where `$TEAM` = `.claude/skills/agent-team/team`.
 The team itself is a git submodule pinned to a version; the project's own files are `AGENTS.md`, `CLAUDE.md` and `.team/`.
 
+## Profile selection
+
+Read `profile:` in `.team/team.md` first. Missing means `full` (legacy behavior).
+For `lightweight`, read [profiles/lightweight/TEAM.md](profiles/lightweight/TEAM.md)
+and follow that rulebook instead of the full-team instructions below. The launcher
+selects the profile-specific role file unless the project overrides it.
+
 ## The team
 
 | Role | Runs on | Lane (the only place you write) | Never |

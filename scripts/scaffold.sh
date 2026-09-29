@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # agent-team scaffold — write the per-project files into the current clone.
 #
-# Usage:  bash scaffold.sh [--name "Project"] [--human "Name"] [--version "vX"]
+# Usage:  bash scaffold.sh [--name "Project"] [--human "Name"] [--version "vX"] [--profile full|lightweight]
 # Idempotent: never overwrites an existing file.
 
 set -euo pipefail
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ASSETS="$SKILL_DIR/assets"
 
-NAME=""; HUMAN=""; VERSION="unversioned"
+NAME=""; HUMAN=""; VERSION="unversioned"; PROFILE=""
 while [ $# -gt 0 ]; do
   case "$1" in
+    --profile) PROFILE="$2"; shift 2 ;;
     --name) NAME="$2"; shift 2 ;;
     --human) HUMAN="$2"; shift 2 ;;
     --version) VERSION="$2"; shift 2 ;;
@@ -20,6 +21,13 @@ done
 
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "error: not inside a git repo" >&2; exit 2; }
 cd "$ROOT"
+existing_profile="$(sed -n 's/^profile: *//p' .team/team.md 2>/dev/null || true)"
+existing_profile="${existing_profile:-full}"
+PROFILE="${PROFILE:-$existing_profile}"
+case "$PROFILE" in full|lightweight) ;; *) echo "invalid profile: $PROFILE" >&2; exit 2 ;; esac
+if [ -f .team/team.md ] && [ "$PROFILE" != "$existing_profile" ]; then
+  echo "profile mismatch: project uses $existing_profile; profile migration is not part of init" >&2; exit 2
+fi
 [ -n "$NAME" ]  || NAME="$(basename "$(git remote get-url origin 2>/dev/null || echo "$ROOT")" .git)"
 [ -n "$HUMAN" ] || HUMAN="$(git config user.name 2>/dev/null || echo 'the human')"
 
@@ -39,9 +47,11 @@ if ! grep -q 'AGENTS\.md' CLAUDE.md; then
   { cat "$ASSETS/root/CLAUDE.md"; echo; cat CLAUDE.md; } > CLAUDE.md.tmp && mv CLAUDE.md.tmp CLAUDE.md
   created+=("CLAUDE.md (pointer to AGENTS.md added at the top)")
 fi
+TEAM_ASSETS="$ASSETS/team"
+[ "$PROFILE" != lightweight ] || TEAM_ASSETS="$ASSETS/lightweight"
 while IFS= read -r -d '' f; do
-  copy_tpl "$f" ".team/${f#"$ASSETS"/team/}"
-done < <(find "$ASSETS/team" -type f -print0)
+  copy_tpl "$f" ".team/${f#"$TEAM_ASSETS"/}"
+done < <(find "$TEAM_ASSETS" -type f ! -name .DS_Store -print0)
 
 [ ${#created[@]} -gt 0 ] && { echo "created:"; printf '  %s\n' "${created[@]}"; }
 if [ ${#skipped[@]} -gt 0 ]; then

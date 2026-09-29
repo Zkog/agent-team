@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Images (Codex, GPT-6 Sol). Handles image requests from the coder or human.
+: "${AGENT_TEAM_CODEX_FLAGS:=--sandbox danger-full-access --ask-for-approval on-request}"
+# shellcheck disable=SC2086
+exec "$(dirname "$0")/_start" images images.md \
+  codex MODEL_ARGS $AGENT_TEAM_CODEX_FLAGS "You are the Images agent. Read AGENTS.md, then your role file at ROLEFILE, and follow its \"On start\" section." "$@"

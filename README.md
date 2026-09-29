@@ -6,6 +6,40 @@ The team lives **in the project** as a pinned git submodule. One clone per role,
 
 See [SKILL.md](SKILL.md) for the design and [team/TEAM.md](team/TEAM.md) for the rulebook the agents get.
 
+## Lightweight team
+
+Select a three-agent workspace when you want to talk directly to the Coder:
+
+```bash
+./new-project.sh myproj --profile lightweight
+```
+
+- **Coder:** Claude Opus 5.5 (`claude-opus-5-5`), owns requirements and implementation.
+- **Images:** Codex GPT-6 Sol (`gpt-6-sol`), creates images through its image tool.
+- **Reviewer:** Codex GPT-6 Sol (`gpt-6-sol`), reviews the PR independently.
+
+This creates only `coder/`, `images/` and `reviewer/`. `./team open` opens those
+three roles. Use `./team coder`, `./team images`, `./team reviewer`, `./team status`
+and `./team board` as usual. Talk to the Coder; the human still merges.
+There is no PO, Architect or required plan: a story goes directly to the Coder.
+Image requests live in `.team/images/`; they cover general images as well as icons.
+The Images agent delivers assets on main and the Coder integrates them into the PR.
+
+The selected profile is saved in `.team/team.md`. The default is `full`, preserving
+the original five-role team; old projects without a profile also use `full`.
+`init` refuses a different profile on an already configured project; this option
+creates a workspace, it does not migrate running teams. Existing pinned team
+versions must support profiles; use `--team-version <tag-containing-this-change>`
+once released. Unpublished changes in this checkout are not used by the remote
+bootstrap script.
+
+For manual setup, start with a clone named `coder/`, add the team submodule, then
+run `bash .claude/skills/agent-team/scripts/init.sh --profile lightweight` inside it.
+Model overrides are `AGENT_TEAM_CODER_MODEL`, `AGENT_TEAM_IMAGES_MODEL` and
+`AGENT_TEAM_REVIEWER_MODEL`. Command-line model arguments can also override them.
+The explicit models and image tool must be available in your installed clients
+and account; launchers do not silently fall back to another model.
+
 ## New project
 
 One command, from nothing to a running workspace:
